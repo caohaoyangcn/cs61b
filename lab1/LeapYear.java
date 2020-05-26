@@ -14,6 +14,12 @@ public class LeapYear {
         }
     }
 
+    private static boolean isLeapYear(int yr){
+        if (yr%400 == 0) return true;
+        if (yr%100!=0 && yr%4 == 0) return true;
+        return false;
+    }
+
     /** Must be provided an integer as a command line argument ARGS. */
     public static void main(String[] args) {
         if (args.length < 1) {
