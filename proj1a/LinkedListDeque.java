@@ -30,9 +30,22 @@ public class LinkedListDeque<T> {
     public LinkedListDeque(LinkedListDeque other) {
         Node ptr = other.sentinel;
         sentinel = new Node(null, null, null);
-
+        Node currNode = sentinel;
+        while (!ptr.next.equals(other.sentinel)) {
+            ptr = ptr.next;
+            Node nodeToCopy = new Node(ptr.item, null, null);
+            nodeToCopy.prev = currNode;
+            currNode.next = nodeToCopy;
+            currNode = nodeToCopy;
+        }
+        sentinel.prev = currNode;
+        currNode.next = sentinel;
+        size = other.size;
     }
 
+    public int size() {
+        return size;
+    }
     /**
      * takes constant time without using any iteration or recursion
      * @param item: element to be added to the front
@@ -60,7 +73,14 @@ public class LinkedListDeque<T> {
     }
 
     public void printDeque() {
-
+        Node ptr = sentinel;
+        System.out.print("Sentinel <--> ");
+        while (!ptr.next.equals(sentinel)) {
+            ptr = ptr.next;
+            System.out.print(ptr.item);
+            System.out.print(" <--> ");
+        }
+        System.out.println("Same sentinel");
     }
 
     /**
