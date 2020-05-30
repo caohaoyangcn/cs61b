@@ -15,14 +15,15 @@ public class ArrayDeque<T> {
     }
 
     // TODO: implement copy constructor
-    public ArrayDeque(ArrayDeque<T> another) {
-        @SuppressWarnings("unchecked")
+    public ArrayDeque(ArrayDeque another) {
         int itemLength = another.items.length;
+
+        @SuppressWarnings("unchecked")
         T[] arr = (T[])new Object[itemLength];
         int currIndex;
         for (int i = 1; i <= another.size; i++) {
             currIndex = (another.nextFirst + i) % itemLength;
-            arr[currIndex] = another.items[currIndex];
+            arr[currIndex] = (T) another.items[currIndex];
         }
         this.items = arr;
         this.nextFirst = another.nextFirst;
