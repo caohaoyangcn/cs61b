@@ -20,17 +20,47 @@ public class ArrayDeque<T> {
 
         @SuppressWarnings("unchecked")
         T[] arr = (T[])new Object[itemLength];
-        int currIndex;
-        for (int i = 1; i <= another.size; i++) {
-            currIndex = (another.nextFirst + i) % itemLength;
-            arr[currIndex] = (T) another.items[currIndex];
+
+        /* New implementation */
+        if (another.nextFirst < another.nextLast) {
+            if (another.size + another.nextFirst < itemLength) {
+                System.arraycopy(another.items, another.nextFirst+1,
+                        arr, another.nextFirst+1, another.size);
+            }
+            else {
+                int step = (itemLength - 1) - nextFirst;
+                System.arraycopy((T[]) another.items, another.nextFirst+1,
+                        arr, another.nextFirst+1, step);
+                System.arraycopy((T[]) another.items, another.nextFirst+1,
+                        arr, another.nextFirst+1,
+                        (another.size + another.nextFirst) % itemLength);
+            }
         }
+        else {
+            System.arraycopy((T[]) another.items, 0, arr, 0, another.nextLast);
+            System.arraycopy((T[]) another.items, another.nextFirst + 1, arr,
+                    another.nextFirst + 1, itemLength - 1 - another.nextFirst);
+        }
+//        /* Old implementation */
+//        int currIndex;
+//        for (int i = 1; i <= another.size; i++) {
+//            currIndex = (another.nextFirst + i) % itemLength;
+//            arr[currIndex] = (T) another.items[currIndex];
+//        }
         this.items = arr;
         this.nextFirst = another.nextFirst;
         this.nextLast = another.nextLast;
         this.size = another.size;
     }
 
+    /**
+     * A helper function that copies all the existing data from old items array
+     * to an array of newLength and reassign the instance variable items to this new array.
+     * The logical relations among the elements remains unchanged, i. e., the order and
+     * head-tail relation are still the same in the new array.
+     * nextFirst is always reset to baseIndexFirst after the rearrangement.
+     * @param newLength
+     */
     private void resizingArr(int newLength) {
         @SuppressWarnings("unchecked")
         T[] arr = (T[])new Object[newLength];
@@ -46,6 +76,12 @@ public class ArrayDeque<T> {
         this.items = arr;
     }
 
+    /**
+     * A helper function that checks the usage of memory in our array.
+     * When the usage factor is either too small or too big,
+     * it will then call another helper function named resizingArr
+     * to resize the array.
+     */
     private void checkUsageFactor() {
         int currLength = items.length;
         if (nextFirst == nextLast) {
@@ -112,7 +148,8 @@ public class ArrayDeque<T> {
      */
     public T removeFirst() {
         if (isEmpty()) {
-            throw new IllegalStateException("Cannot pop out any element from an empty list.");
+            String msg = "Cannot pop out any element from an empty list.";
+            throw new IllegalStateException(msg);
         }
         checkUsageFactor();
         nextFirst = (nextFirst + 1) % items.length;
@@ -126,7 +163,8 @@ public class ArrayDeque<T> {
      */
     public T removeLast() {
         if (isEmpty()) {
-            throw new IllegalStateException("Cannot pop out any element from an empty list.");
+            String msg = "Cannot pop out any element from an empty list.";
+            throw new IllegalStateException(msg);
         }
         checkUsageFactor();
         nextLast = (nextLast - 1) % items.length;
@@ -135,7 +173,7 @@ public class ArrayDeque<T> {
     }
 
     /**
-     * get index th element of queue using iteration.
+     * gets index th element of queue, takes constant time.
      * @param index
      * @return
      */
