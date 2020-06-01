@@ -154,7 +154,9 @@ public class ArrayDeque<T> {
         checkUsageFactor();
         nextFirst = (nextFirst + 1) % items.length;
         size -= 1;
-        return items[nextFirst];
+        T res = items[nextFirst];
+        items[nextFirst] = null; // prevent loitering, make use of Java's garbage collection
+        return res;
     }
 
     /**
@@ -167,9 +169,14 @@ public class ArrayDeque<T> {
             throw new IllegalStateException(msg);
         }
         checkUsageFactor();
-        nextLast = (nextLast - 1) % items.length;
+        nextLast = nextLast - 1;
+        if (nextLast < 0) {
+            nextLast += items.length;
+        }
         size -= 1;
-        return items[nextLast];
+        T res = items[nextLast];
+        items[nextLast] = null;
+        return res;
     }
 
     /**
