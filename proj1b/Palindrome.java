@@ -23,18 +23,19 @@ public class Palindrome {
     private boolean checkAToZ (char c) {
         return (int) c <= 122 && (int) c >= 97;
     }
+
     public boolean isPalindrome(String word, CharacterComparator cc) {
+        for (int i = 0; i < word.length(); i++) {
+            if (!checkAToZ(word.charAt(i))) {
+                throw new IllegalArgumentException("word must contain only lower case characters");
+            }
+        }
         Deque<Character> d = wordToDeque(word);
         while (d.size() > 1) {
             char head = d.removeFirst();
             char tail = d.removeLast();
-            if (checkAToZ(head) && checkAToZ(tail)) {
-                if (!cc.equalChars(head, tail)) {
-                    return false;
-                }
-            }
-            else {
-                throw new IllegalArgumentException("word must include only lower case characters");
+            if (!cc.equalChars(head, tail)) {
+                return false;
             }
         }
         return true;
