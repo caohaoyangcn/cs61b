@@ -8,30 +8,36 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
     private int[] pq;
     private int[] qp;
     private PriorityNode[] keys;
-    private HashMap<T, Integer> items;
-    private final int DEFAULT_SIZE = 16;
+    private HashMap<T, Integer> items; // mapping from item to index in keys array
+    private static final int DEFAULT_SIZE = 16;
     private final double MIN_LOAD_FACTOR = .25;
     private int size;
 
-    public ArrayHeapMinPQ() {
-        keys = (PriorityNode[]) new Object[DEFAULT_SIZE];
-        pq = new int[DEFAULT_SIZE];
-        qp = new int[DEFAULT_SIZE];
+    public ArrayHeapMinPQ(int size) {
+        keys = new ArrayHeapMinPQ.PriorityNode[size];
+        pq = new int[size];
+        qp = new int[size];
         Arrays.fill(qp, -1);
         items = new HashMap<>();
         size = 0;
     }
 
+    public ArrayHeapMinPQ() {
+        this(DEFAULT_SIZE);
+    }
+
     private void resizing(int newLen) {
-        int[] tempPQ = new int[newLen];
-        int[] tempQP = new int[newLen];
-        PriorityNode[] tempKeys = (PriorityNode[]) new Object[newLen];
-        System.arraycopy(keys, 0, tempKeys, 0, keys.length);
-        System.arraycopy(pq, 0, tempPQ, 0, pq.length);
-        System.arraycopy(qp, 0, tempQP, 0, qp.length);
-        keys = tempKeys;
-        pq = tempPQ;
-        qp = tempQP;
+        ArrayHeapMinPQ<T> temp = new ArrayHeapMinPQ<>(newLen);
+        for (PriorityNode key : keys) {
+            if (key != null) {
+                temp.add(key.getItem(), key.getPriority());
+            }
+        }
+        this.items = temp.items;
+        this.keys = temp.keys;
+        this.size = temp.size;
+        this.pq = temp.pq;
+        this.qp = temp.qp;
     }
 
     @Override
@@ -39,21 +45,19 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
         if (contains(item)) {
             throw new IllegalArgumentException();
         }
-        if (size() == keys.length - 1) {
-            resizing(2 * keys.length);
+        if (size() == pq.length - 1) {
+            resizing(2 * pq.length);
         }
-        else {
-            keys[++size] = new PriorityNode(item, priority);
-            pq[size] = size;
-            qp[size] = size;
-            swim(size);
-            items.put(item, size);
-        }
+        keys[++size] = new PriorityNode(item, priority);
+        pq[size] = size;
+        qp[size] = size;
+        swim(size);
+        items.put(item, size);
     }
 
     @Override
     public boolean contains(T item) {
-        return -1 != qp[items.get(item)];
+        return items.containsKey(item);
     }
 
     @Override
@@ -61,7 +65,7 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
         if (isEmpty()) {
             throw new NoSuchElementException();
         }
-        return keys[pq[1]].getItem();
+        return (T) keys[pq[1]].getItem();
     }
 
     @Override
@@ -69,8 +73,8 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
         if (isEmpty()) {
             throw new NoSuchElementException();
         }
-        if (keys.length >= 16 && (double) size / keys.length <= MIN_LOAD_FACTOR) {
-            resizing(keys.length / 2);
+        if (pq.length > 16 && (double) size / pq.length <= MIN_LOAD_FACTOR) {
+            resizing(pq.length / 2);
         }
         T res = getSmallest();
         exch(1, size--);
@@ -97,6 +101,8 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
         }
         int index = items.get(item);
         keys[index].setPriority(priority);
+        swim(qp[index]);
+        sink(qp[index]);
     }
 
     private void exch(int i, int j) {
@@ -130,7 +136,7 @@ public class ArrayHeapMinPQ<T> implements ExtrinsicMinPQ<T> {
                 break;
             }
             exch(k, j);
-            k *= 2;
+            k = j;
         }
     }
 
