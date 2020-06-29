@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.NoSuchElementException;
 
 /*  @author Josh Hug, with most code created by:
@@ -9,6 +10,8 @@ public class BST<Key extends Comparable<Key>> {
      * Initializes an empty BST.
      */
     public BST() {
+        depthRecord = new HashMap<>();
+        totalDepth = 0;
     }
 
     /**
@@ -40,7 +43,7 @@ public class BST<Key extends Comparable<Key>> {
      */
     public void add(Key key) {
         if (key == null) throw new IllegalArgumentException("calls put() with a null key");
-        root = add(root, key);
+        root = addHelper(root, key, 0);
     }
 
     /**
@@ -92,15 +95,40 @@ public class BST<Key extends Comparable<Key>> {
         if      (cmp < 0) x.left  = deleteTakingSuccessor(x.left,  key);
         else if (cmp > 0) x.right = deleteTakingSuccessor(x.right, key);
         else {
-            if (x.right == null) return x.left;
-            if (x.left  == null) return x.right;
+            if (x.right == null) {
+                depthTweak(x.left, -1);
+                totalDepth -= depthRecord.get(key);
+                depthRecord.remove(key);
+                return x.left;
+            }
+            if (x.left  == null) {
+                depthTweak(x.right, -1);
+                totalDepth -= depthRecord.get(key);
+                depthRecord.remove(key);
+                return x.right;
+            }
             Node t = x;
             x = min(t.right); // x points at successor
             x.right = deleteMin(t.right); // successor points at right tree as if it had been deleted
             x.left = t.left; // successor points at left tree as it was
+            int curDepth = depthRecord.get(key);
+            depthRecord.put(x.key, curDepth);
+            depthRecord.remove(key);
         }
         x.size = size(x.left) + size(x.right) + 1;
         return x;
+    }
+
+    private void depthTweak(Node x, int delta) {
+        if (x == null) {
+            return;
+        }
+        int oldDepth = depthRecord.get(x.key);
+        int newDepth = oldDepth + delta;
+        depthRecord.put(x.key, newDepth);
+        totalDepth += delta;
+        depthTweak(x.left, delta);
+        depthTweak(x.right, delta);
     }
 
     private Node deleteTakingRandom(Node x, Key key) {
@@ -110,19 +138,35 @@ public class BST<Key extends Comparable<Key>> {
         if      (cmp < 0) x.left  = deleteTakingRandom(x.left,  key);
         else if (cmp > 0) x.right = deleteTakingRandom(x.right, key);
         else {
-            if (x.right == null) return x.left;
-            if (x.left  == null) return x.right;
+            if (x.right == null) {
+                depthTweak(x.left, -1);
+                totalDepth -= depthRecord.get(key);
+                depthRecord.remove(key);
+                return x.left;
+            }
+            if (x.left == null) {
+                depthTweak(x.right, -1);
+                totalDepth -= depthRecord.get(key);
+                depthRecord.remove(key);
+                return x.right;
+            }
             boolean random = RandomGenerator.getRandomBoolean();
             if (random) { // use successor with 50% chance
                 Node t = x;
                 x = min(t.right); // x points at successor
                 x.right = deleteMin(t.right); // successor points at right tree as if it had been deleted
                 x.left = t.left; // successor points at left tree as it was
+                int curDepth = depthRecord.get(key);
+                depthRecord.put(x.key, curDepth);
+                depthRecord.remove(key);
             } else { // use predecessor
                 Node t = x;
                 x = max(t.left); // x points at predecessor
                 x.left = deleteMax(t.left); // predecessor points at left tree as if it had been deleted
                 x.right = t.right; // predecessor points at right tree as it was
+                int curDepth = depthRecord.get(key);
+                depthRecord.put(x.key, curDepth);
+                depthRecord.remove(key);
             }
 
         }
@@ -186,6 +230,23 @@ public class BST<Key extends Comparable<Key>> {
         return x;
     }
 
+    private int totalDepth;
+    private HashMap<Key, Integer> depthRecord;
+    private Node addHelper(Node x, Key key, int depth) {
+        if (x == null) {
+            totalDepth += depth;
+            depthRecord.put(key, depth);
+            return new Node(key, 1);
+        }
+        int cmp = key.compareTo(x.key);
+        if      (cmp < 0) x.left  = addHelper(x.left,  key, depth + 1);
+        else if (cmp > 0) x.right = addHelper(x.right, key, depth + 1);
+        else              ; // do nothing, key already exists
+        x.size = 1 + size(x.left) + size(x.right);
+        return x;
+
+    }
+
     /**
      * Removes the smallest key and associated value from the BST.
      *
@@ -199,7 +260,11 @@ public class BST<Key extends Comparable<Key>> {
     /** Returns the root of a tree with the minimum of x deleted.
      *  That is, if I am the minimum, return my right child! */
     private Node deleteMin(Node x) {
-        if (x.left == null) return x.right;
+        if (x.left == null) {
+            totalDepth -= depthRecord.get(x.key);
+            depthTweak(x.right, -1);
+            return x.right;
+        }
         x.left = deleteMin(x.left);
         x.size = size(x.left) + size(x.right) + 1;
         return x;
@@ -216,7 +281,11 @@ public class BST<Key extends Comparable<Key>> {
     }
 
     private Node deleteMax(Node x) {
-        if (x.right == null) return x.left;
+        if (x.right == null) {
+            totalDepth -= depthRecord.get(x.key);
+            depthTweak(x.left, -1);
+            return x.left;
+        }
         x.right = deleteMax(x.right);
         x.size = size(x.left) + size(x.right) + 1;
         return x;
@@ -245,5 +314,23 @@ public class BST<Key extends Comparable<Key>> {
      */
     private boolean isEmpty() {
         return size() == 0;
+    }
+
+    public double avgTreeDepth() {
+        assert size() != 0;
+        return (double) totalDepth / size();
+    }
+
+    public double avgTreeDepthRecursive() {
+        assert size() != 0;
+        return (double) avgTreeDepthHelper(root, 0, 0) / size();
+    }
+
+    private int avgTreeDepthHelper(Node x, int curDepth, int acc) {
+        if (x == null) {
+            return acc;
+        }
+        acc += curDepth;
+        return avgTreeDepthHelper(x.left, curDepth + 1, avgTreeDepthHelper(x.right, curDepth + 1, acc));
     }
 }

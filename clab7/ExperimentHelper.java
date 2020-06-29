@@ -1,3 +1,5 @@
+import edu.princeton.cs.algs4.StdRandom;
+
 /**
  * Created by hug.
  */
@@ -15,7 +17,13 @@ public class ExperimentHelper {
      *  N = 8, OIPL: 13
      */
     public static int optimalIPL(int N) {
-        return 0;
+        int pathSum = 0;
+        int n = 1;
+        while (n <= N) {
+            pathSum += (int) Math.floor(Math.log10(n) / Math.log10(2));
+            n++;
+        }
+        return pathSum;
     }
 
     /** Returns the average depth for nodes in an optimal BST of
@@ -27,6 +35,24 @@ public class ExperimentHelper {
      * @return
      */
     public static double optimalAverageDepth(int N) {
-        return 0;
+        int n = 1;
+        double depthSum = 0;
+        while (n <= N) {
+            depthSum += Math.floor(Math.log10(n) / Math.log10(2));
+            n++;
+        }
+        return depthSum / N;
+    }
+
+    public static void randomDelete(BST<Double> tree) {
+        tree.deleteTakingRandom(tree.getRandomKey());
+    }
+
+    public static void takeSuccessorDelete(BST<Double> tree) {
+        tree.deleteTakingSuccessor(tree.getRandomKey());
+    }
+
+    public static void randomInsert(BST<Double> tree, double min, double max) {
+        tree.add(StdRandom.uniform(min, max));
     }
 }
