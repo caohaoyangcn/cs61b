@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static bearmaps.proj2c.utils.Constants.SEMANTIC_STREET_GRAPH;
-import static bearmaps.proj2c.utils.Constants.ROUTE_LIST;
+import static bearmaps.proj2c.utils.Constants.*;
 
 /**
  * Handles requests from the web browser for map images. These images
@@ -86,9 +85,95 @@ public class RasterAPIHandler extends APIRouteHandler<Map<String, Double>, Map<S
     public Map<String, Object> processRequest(Map<String, Double> requestParams, Response response) {
         //System.out.println("yo, wanna know the parameters given by the web browser? They are:");
         //System.out.println(requestParams);
+        // TODO:
+        //  1. 由用户请求参数决定 LonDPP = (lrlon - ullon) / w
+        //  2. 决定缩放程度dx d0 = (ROOT_LRLON - ROOT_ULLON) / TILE_SIZE
+        //  3. 根据dx确定每张图片的经度纬度增量
+        //  4. 找到起点图片，用while循环找到终点图片（横向，经度）
+        //  5. 类似方法找到纵向纬度的起止图片
+        final double lrlon = requestParams.get("lrlon");
+        final double lrlat = requestParams.get("lrlat");
+        final double ullon = requestParams.get("ullon");
+        final double ullat = requestParams.get("ullat");
+        final double width = requestParams.get("w");
+        final double height = requestParams.get("h");
         Map<String, Object> results = new HashMap<>();
-        System.out.println("Since you haven't implemented RasterAPIHandler.processRequest, nothing is displayed in "
-                + "your browser.");
+        boolean query_success;
+        if (ROOT_LRLAT > ullat || ROOT_ULLAT < lrlat || ROOT_LRLON < ullon || ROOT_ULLON > lrlon) {
+            query_success = false;
+        }
+        else if (ullon > lrlon || ullat < lrlat) {
+            query_success = false;
+        }
+        else {
+            query_success = true;
+        }
+        if (!query_success) {
+            results.put("raster_ul_lon", 0);
+            results.put("raster_ul_lat", 0);
+            results.put("raster_lr_lon", 0);
+            results.put("raster_lr_lat", 0);
+            results.put("depth", 0);
+            results.put("render_grid", null);
+            results.put("query_success", false);
+        }
+        double LonDPP = (lrlon - ullon) / width;
+        final double d0 = (ROOT_LRLON - ROOT_ULLON) / TILE_SIZE;
+        double dn = d0;
+        int scale_coefficient = 1;
+        while (dn > LonDPP) {
+            scale_coefficient *= 2;
+            dn = d0 / scale_coefficient;
+        }
+        int temp = scale_coefficient;
+        int depth = 0;
+        while (temp > 1) {
+            temp /= 2;
+            depth++;
+        }
+        depth = Math.min(7, depth);
+        scale_coefficient = Math.min((int) Math.pow(2, 7), scale_coefficient);
+        int xStart;
+        int xEnd;
+        int yStart;
+        int yEnd;
+        double dx = (ROOT_LRLON - ROOT_ULLON) / scale_coefficient;
+        double dy = (ROOT_LRLAT - ROOT_ULLAT) / scale_coefficient;
+        int xn = 0;
+        int yn = 0;
+        while (ROOT_ULLON + dx * xn < ullon) {
+            xn++;
+        }
+        xStart = Math.max(xn - 1, 0);
+        while (ROOT_ULLAT + dy * yn > ullat) {
+            yn++;
+        }
+        yStart = Math.max(yn - 1, 0);
+        while (ROOT_ULLON + dx * xn < lrlon) {
+            xn++;
+        }
+        xEnd = Math.min((int) (Math.pow(2, depth) - 1), xn - 1);
+        while (ROOT_ULLAT + dy * yn > lrlat) {
+            yn++;
+        }
+        yEnd = Math.min((int) (Math.pow(2, depth) - 1), yn - 1);
+        String[][] render_grid = new String[yEnd - yStart + 1][xEnd - xStart + 1];
+        double raster_ul_lon = ROOT_ULLON + dx * xStart;
+        double raster_ul_lat = ROOT_ULLAT + dy * yStart;
+        double raster_lr_lon = ROOT_ULLON + dx * (xEnd + 1);
+        double raster_lr_lat = ROOT_ULLAT + dy * (yEnd + 1);
+        for (int i = yStart; i <= yEnd; i++) {
+            for (int j = xStart; j <= xEnd; j++) {
+                render_grid[i - yStart][j - xStart] = String.format("d%d_x%d_y%d.png", depth, j, i);
+            }
+        }
+        results.put("raster_ul_lon", raster_ul_lon);
+        results.put("raster_ul_lat", raster_ul_lat);
+        results.put("raster_lr_lon", raster_lr_lon);
+        results.put("raster_lr_lat", raster_lr_lat);
+        results.put("depth", depth);
+        results.put("render_grid", render_grid);
+        results.put("query_success", query_success);
         return results;
     }
 
