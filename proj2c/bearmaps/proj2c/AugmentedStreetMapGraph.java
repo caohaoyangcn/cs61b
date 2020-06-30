@@ -12,25 +12,40 @@ import java.util.*;
  * Specifically, it supports the following additional operations:
  *
  *
- * @author Alan Yao, Josh Hug, ________
+ * @author Alan Yao, Josh Hug, Haoyang Cao
  */
 public class AugmentedStreetMapGraph extends StreetMapGraph {
-    HashMap<Point, Node> map;
+    HashMap<Point, Node> point2NodeMapping;
     KDTree kdt;
+    MyTrieSet trie;
+    HashMap<String, LinkedList<Node>> name2NodesMapping;
 
     public AugmentedStreetMapGraph(String dbPath) {
         super(dbPath);
-        // You might find it helpful to uncomment the line below:
         List<Node> nodes = this.getNodes();
         List<Point> pts = new ArrayList<>();
-        map = new HashMap<>();
+        point2NodeMapping = new HashMap<>();
+        name2NodesMapping = new HashMap<>();
+        trie = new MyTrieSet();
         for (Node node: nodes) {
+            if (node.name() != null) {
+                String name = cleanString(node.name());
+                trie.add(name);
+                if (name2NodesMapping.containsKey(name)) {
+                    name2NodesMapping.get(name).add(node);
+                }
+                else {
+                    LinkedList<Node> xs = new LinkedList<>();
+                    xs.add(node);
+                    name2NodesMapping.put(name, xs);
+                }
+            }
             if (neighbors(node.id()).isEmpty()) {
                 continue;
             }
             Point fromNode = node2point(node);
             pts.add(fromNode);
-            map.put(fromNode, node);
+            point2NodeMapping.put(fromNode, node);
         }
         kdt = new KDTree(pts);
     }
@@ -48,8 +63,7 @@ public class AugmentedStreetMapGraph extends StreetMapGraph {
      * @return The id of the node in the graph closest to the target.
      */
     public long closest(double lon, double lat) {
-        long res = map.get(kdt.nearest(lon, lat)).id();
-        return res;
+        return point2NodeMapping.get(kdt.nearest(lon, lat)).id();
     }
 
 
@@ -62,7 +76,7 @@ public class AugmentedStreetMapGraph extends StreetMapGraph {
      * cleaned <code>prefix</code>.
      */
     public List<String> getLocationsByPrefix(String prefix) {
-        return new LinkedList<>();
+        return trie.keysWithPrefix(cleanString(prefix));
     }
 
     /**
@@ -79,7 +93,17 @@ public class AugmentedStreetMapGraph extends StreetMapGraph {
      * "id" -> Number, The id of the node. <br>
      */
     public List<Map<String, Object>> getLocations(String locationName) {
-        return new LinkedList<>();
+        LinkedList<Node> xs = name2NodesMapping.get(cleanString(locationName));
+        ArrayList<Map<String, Object>> toReturn = new ArrayList<>();
+        for (Node node: xs) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("lat", node.lat());
+            map.put("lon", node.lon());
+            map.put("name", node.name());
+            map.put("id", node.id());
+            toReturn.add(map);
+        }
+        return toReturn;
     }
 
 
